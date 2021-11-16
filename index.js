@@ -1,4 +1,4 @@
-export async function setupPlugin({ config, global }) {
+export async function setupPlugin({ config, global, storage }) {
     const {
         run_frequency,
         url,
@@ -32,9 +32,9 @@ export async function setupPlugin({ config, global }) {
         if (isNaN(initialLastInvokedAt)) {
             throw new Error('initial_last_invoked_at is not a number.')
         }
-        global.last_invoked_at = initialLastInvokedAt
+        await storage.set('last_invoked_at', initialLastInvokedAt)
     } else {
-        global.last_invoked_at = new Date().valueOf()
+        await storage.set('last_invoked_at', new Date().valueOf())
     }
 }
 
@@ -42,7 +42,7 @@ function appendLastInvoked(url, last_invoked_at) {
     return `${url}${url.includes('?') ? '&' : '?'}last_invoked_at=${last_invoked_at}`
 }
 
-async function callAPI({ url, include_last_invoked_at, last_invoked_at, http_method: method, headers = {}, body }) {
+async function callAPI({ url, include_last_invoked_at, http_method: method, headers = {}, body }, last_invoked_at) {
     if (include_last_invoked_at && last_invoked_at !== undefined) {
         url = appendLastInvoked(url, last_invoked_at)
     }
@@ -57,30 +57,35 @@ function logRequest(last_invoked_at) {
     console.log(`Sending request (Last invoked at: ${new Date(last_invoked_at).toISOString()})`)
 }
 
-export async function runEveryMinute({ config, global }) {
+export async function runEveryMinute({ config, global, storage }) {
     if (config.run_frequency !== "minute") {
         return
     }
-    logRequest(global.last_invoked_at)
+    const last_invoked_at = await storage.get('last_invoked_at')
+    logRequest(last_invoked_at)
     const now = new Date().valueOf()
-    await callAPI(global)
-    global.last_invoked_at = now
+    await callAPI(global, last_invoked_at)
+    await storage.set('last_invoked_at', now)
 }
 
-export async function runEveryHour({ config, global }) {
+export async function runEveryHour({ config, global, storage }) {
     if (config.run_frequency !== "hour") {
         return
     }
+    const last_invoked_at = await storage.get('last_invoked_at')
+    logRequest(last_invoked_at)
     const now = new Date().valueOf()
-    await callAPI(global)
-    global.last_invoked_at = now
+    await callAPI(global, last_invoked_at)
+    await storage.set('last_invoked_at', now)
 }
 
-export async function runEveryDay({ config, global }) {
+export async function runEveryDay({ config, global, storage }) {
     if (config.run_frequency !== "day") {
         return
     }
+    const last_invoked_at = await storage.get('last_invoked_at')
+    logRequest(last_invoked_at)
     const now = new Date().valueOf()
-    await callAPI(global)
-    global.last_invoked_at = now
+    await callAPI(global, last_invoked_at)
+    await storage.set('last_invoked_at', now)
 }
