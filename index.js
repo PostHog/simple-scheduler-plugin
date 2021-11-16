@@ -1,22 +1,86 @@
-// <TODO: your plugin code here - you can base it on the code below, but you don't have to>
-
-// Some internal library function
-async function getRandomNumber() {
-    return 4
+export async function setupPlugin({ config, global }) {
+    const {
+        run_frequency,
+        url,
+        include_last_invoked_at,
+        http_method,
+        headers,
+        body,
+        initial_last_invoked_at
+    } = config
+    global.run_frequency = run_frequency
+    if (!url.match(/^https?:\/\//)) {
+        throw new Error('Invalid url. Supported protocols: HTTP, HTTPS')
+    }
+    global.url = url
+    global.include_last_invoked_at = include_last_invoked_at === 'true'
+    if (['GET', 'DELETE'].includes(http_method) && body) {
+        throw new Error('HTTP method cannot be GET or DELETE when body is set.')
+    }
+    global.http_method = http_method
+    global.body = body
+    if (headers) {
+        try {
+            const headersObject = JSON.parse(headers)
+            global.headers = headersObject
+        } catch (error) {
+            throw new Error('Headers are not valid JSON.')
+        }
+    }
+    if (initial_last_invoked_at) {
+        const initialLastInvokedAt = parseInt(initial_last_invoked_at)
+        if (isNaN(initialLastInvokedAt)) {
+            throw new Error('initial_last_invoked_at is not a number.')
+        }
+        global.last_invoked_at = initialLastInvokedAt
+    } else {
+        global.last_invoked_at = new Date().valueOf()
+    }
 }
 
-// Plugin method that runs on plugin load
-export async function setupPlugin({ config }) {
-    console.log(`Setting up the plugin`)
+function appendLastInvoked(url, last_invoked_at) {
+    return `${url}${url.includes('?') ? '&' : '?'}last_invoked_at=${last_invoked_at}`
 }
 
-// Plugin method that processes event
-export async function processEvent(event, { config, cache }) {
-    const counterValue = (await cache.get('greeting_counter', 0))
-    cache.set('greeting_counter', counterValue + 1)
-    if (!event.properties) event.properties = {}
-    event.properties['greeting'] = config.greeting
-    event.properties['greeting_counter'] = counterValue
-    event.properties['random_number'] = await getRandomNumber()
-    return event
+async function callAPI({ url, include_last_invoked_at, last_invoked_at, http_method: method, headers = {}, body }) {
+    if (include_last_invoked_at && last_invoked_at !== undefined) {
+        url = appendLastInvoked(url, last_invoked_at)
+    }
+    await fetch(url, {
+        method,
+        headers,
+        body: body || undefined,
+    })
+}
+
+function logRequest(last_invoked_at) {
+    console.log(`Sending request (Last invoked at: ${new Date(last_invoked_at).toISOString()})`)
+}
+
+export async function runEveryMinute({ config, global }) {
+    if (config.run_frequency !== "minute") {
+        return
+    }
+    logRequest(global.last_invoked_at)
+    const now = new Date().valueOf()
+    await callAPI(global)
+    global.last_invoked_at = now
+}
+
+export async function runEveryHour({ config, global }) {
+    if (config.run_frequency !== "hour") {
+        return
+    }
+    const now = new Date().valueOf()
+    await callAPI(global)
+    global.last_invoked_at = now
+}
+
+export async function runEveryDay({ config, global }) {
+    if (config.run_frequency !== "day") {
+        return
+    }
+    const now = new Date().valueOf()
+    await callAPI(global)
+    global.last_invoked_at = now
 }

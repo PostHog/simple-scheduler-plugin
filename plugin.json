@@ -1,18 +1,76 @@
 {
-    "name": "<TODO: your plugin name>",
-    "url": "<TODO: Your Plugin URL here>",
-    "description": "<TODO: Your Plugin description here>",
+    "name": "Simple Scheduler Plugin",
+    "url": "https://github.com/PostHog/simple-scheduler-plugin",
+    "description": "Calls an external API at the set interval, and remembers the last time it was called",
     "main": "index.js",
     "posthogVersion": ">= 1.25.0",
     "config": [
         {
-            "markdown": "<TODO: your plugin config, remove if none>"
+            "markdown": ""
         },
         {
-            "key": "greeting",
-            "name": "What greeting would you like to use?",
+            "key": "run_frequency",
+            "name": "Run frequency",
+            "type": "choice",
+            "choices": [
+                "minute",
+                "hour",
+                "day"
+            ],
+            "default": "hour",
+            "required": true
+        },
+        {
+            "key": "url",
+            "name": "URL of the service to fetch",
             "type": "string",
-            "default": "Hello World!",
+            "default": "",
+            "required": true
+        },
+        {
+            "key": "include_last_invoked_at",
+            "name": "Include last_invoked_at timestamp in query parameters?",
+            "type": "choice",
+            "choices": [
+                "true",
+                "false"
+            ],
+            "default": "true",
+            "required": true
+        },
+        {
+            "key": "http_method",
+            "name": "HTTP method",
+            "type": "choice",
+            "choices": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+            ],
+            "default": "GET",
+            "required": true
+        },
+        {
+            "key": "headers",
+            "name": "Headers",
+            "type": "string",
+            "default": "{\"Authorization\": \"Bearer YOUR_BEARER_TOKEN\"}",
+            "required": false
+        },
+        {
+            "key": "body",
+            "name": "Request body",
+            "type": "string",
+            "default": "",
+            "required": false
+        },
+        {
+            "key": "initial_last_invoked_at",
+            "name": "Initial value for last_invoked_at (UNIX timestamp)",
+            "type": "string",
+            "default": "",
             "required": false
         }
     ]
