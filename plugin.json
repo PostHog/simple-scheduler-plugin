@@ -68,7 +68,7 @@
         },
         {
             "key": "initial_last_invoked_at",
-            "name": "Initial value for last_invoked_at (UNIX timestamp)",
+            "name": "Initial value for last_invoked_at (ISO string)",
             "type": "string",
             "default": "",
             "required": false
